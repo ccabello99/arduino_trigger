@@ -1,0 +1,5 @@
+ pyduinocli
+ pyserial
+ pyqt5
+ numpy
+ pyqtgraph
