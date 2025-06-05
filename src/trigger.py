@@ -109,3 +109,15 @@ class ArduinoTrigger:
     
             except Exception as e:
                 print(f"Upload failed: {str(e)}")
+
+if __name__ == "__main__":
+    # Create an instance on file execution
+    arduino_ports = find_arduino_ports()
+    if arduino_ports:
+        device_port = arduino_ports[0] # Use the first found Arduino port
+        pins = [2, 3, 4]
+        trigger = ArduinoTrigger(device_port, pins)
+        print(f"Arduino trigger initialized on port {device_port} with pins {pins}")
+    else:
+        print("No Arduino devices found.")
+        trigger = None

@@ -5,7 +5,6 @@ from trigger import ArduinoTrigger, find_arduino_ports
 ports = find_arduino_ports()
 pins = {"Pin2": 0, "Pin3": 1, "Pin4": 2}
 
-
 class ArduinoActor(Actor):
     def __init__(self, name: str, device_port: str, pins: dict, **kwargs):
         super().__init__(name=name, device_class=ArduinoTrigger, **kwargs)
@@ -21,6 +20,3 @@ class ArduinoActor(Actor):
 
         # Start listening for incoming messages
         self.listen()
-
-
-
