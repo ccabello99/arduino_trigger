@@ -8,6 +8,7 @@ coordinator -p <port_number>
 # Then, in another terminal, start IPython and run:
 ``` python
 from arduino_trigger.src.trigger_actor import ArduinoActor
+from arduino_trigger.src.trigger import find_arduino_ports
 
 ports = find_arduino_ports()
 pins = {"Pin2": 0, "Pin3": 1, "Pin4": 2}
