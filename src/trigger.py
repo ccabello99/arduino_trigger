@@ -5,31 +5,35 @@ except ImportError:
     SerialException = None
 
 import os
-import numpy as np
+import re
 import pyduinocli
 import time
 from serial.tools import list_ports
 from qtpy import QtCore
+from pyleco.utils.data_publisher import DataPublisher
 
 def find_arduino_ports():
     ports = list_ports.comports()
-    arduino_ports = []
+    arduino_ports = {'ports': [], 'serial_numbers': []}
 
     for port in ports:
         if port.manufacturer == None:
             continue
         if "Arduino" in port.manufacturer:
-            arduino_ports.append(port.device)
+            arduino_ports["ports"].append(port.device)
+            arduino_ports["serial_numbers"].append(port.serial_number)
 
     return arduino_ports
             
 
 class ArduinoTrigger:
-    def __init__(self, device_port, pins):
-        self.device_port = device_port
-        self.pins = pins
-        self.arduino = Serial(device_port, 115200, timeout=1, rtscts=False, dsrdtr=False)
+    def __init__(self, device_info: dict, publisher_name: str, proxy_address: str, proxy_port: int):
+        self.device_port = device_info['port']
+        self.serial_number = device_info['serial_number']
+        self.pins = device_info['pins']
+        self.arduino = Serial(self.device_port, 115200, timeout=1, rtscts=False, dsrdtr=False)
         self.shotNumber = 0
+        self.data_publisher = DataPublisher(full_name=publisher_name, host=proxy_address, port=proxy_port)
     
     def read_response(self):
         response_lines = []
@@ -55,16 +59,114 @@ class ArduinoTrigger:
     def stop(self):
         response = self.write_to_device("STOP;")
         print(response)
+        # Tell proxy server we have issued a command
+        metadata = {"trigger_metadata": {}}
+        metadata['trigger_metadata']['device_reponse'] = response
+        metadata['trigger_metadata']['message_type'] = "stop"
+        metadata['trigger_metadata']['description'] = f"Stopped all events, set all pins to zero, and clear all planned events"
+        
+        if self.data_publisher is not None:
+            self.data_publisher.send_data({self.data_publisher.full_name:
+                                            {'metadata': metadata,
+                                            'message_type': 'trigger',
+                                            'serial_number': self.serial_number}})
+        return response
+    
+    def sendRisingEdge(self, event: str):
+        response = self.write_to_device(event)
+        print(response)
+
+        match = re.match(r"\((\d+),(\d+),(\d+)\);", event)
+        if match:
+            pin = int(match.group(1))
+            delay = int(match.group(2))
+
+        metadata = {"trigger_metadata": {}}
+        metadata['trigger_metadata']['trigger_command'] = event
+        metadata['trigger_metadata']['message_type'] = "send_rising_edge"
+        metadata['trigger_metadata']['description'] = f"Sending a rising edge to pin {pin} with delay of {delay} ms"
+        
+        if self.data_publisher is not None:
+            self.data_publisher.send_data({self.data_publisher.full_name:
+                                            {'metadata': metadata,
+                                            'message_type': 'trigger',
+                                            'serial_number': self.serial_number}})
+        return response
+    
+    def sendFallingEdge(self, event: str):
+        response = self.write_to_device(event)
+        print(response)
+
+        match = re.match(r"\((\d+),(\d+),(\d+)\);", event)
+        if match:
+            pin = int(match.group(1))
+            delay = int(match.group(2))
+
+        metadata = {"trigger_metadata": {}}
+        metadata['trigger_metadata']['trigger_command'] = event
+        metadata['trigger_metadata']['message_type'] = "send_falling_edge"
+        metadata['trigger_metadata']['description'] = f"Sending a falling edge to pin {pin} with delay of {delay} ms"
+        
+        if self.data_publisher is not None:
+            self.data_publisher.send_data({self.data_publisher.full_name:
+                                            {'metadata': metadata,
+                                            'message_type': 'trigger',
+                                            'serial_number': self.serial_number}})
         return response
 
     def sendPulse(self, pulse: str):
         response = self.write_to_device(pulse)
         print(response)
+
+        match = re.match(r"\((\d+),(\d+),1\);\(\d+,(\d+),0\);", pulse)
+        if match:
+            pin = int(match.group(1))
+            delay = int(match.group(2))
+            delay2 = int(match.group(3))
+            width = delay2 - delay
+
+        metadata = {"trigger_metadata": {}}
+        metadata['trigger_metadata']['trigger_command'] = pulse
+        metadata['trigger_metadata']['message_type'] = "send_pulse"
+        metadata['trigger_metadata']['description'] = f"Sending a pulse to pin {pin} with delay of {delay} ms and pulse width of {width} ms"
+        
+        if self.data_publisher is not None:
+            self.data_publisher.send_data({self.data_publisher.full_name:
+                                            {'metadata': metadata,
+                                            'message_type': 'trigger',
+                                            'serial_number': self.serial_number}})
         return response
 
     def sendPulseSequence(self, sequence: str):
         response = self.write_to_device(sequence)
         print(response)
+
+
+        # Regular expression to match each pair of ON and OFF events
+        pattern = r"\((\d+),(\d+),1\);\(\d+?,(\d+),0\);"
+        matches = re.findall(pattern, sequence)
+        delays = []
+        widths = []
+        for match in matches:
+            pin = int(match[0])
+            delay = int(match[1])
+            delay2 = int(match[2])
+            width = delay2 - delay
+            delays.append(delay)
+            widths.append(width)
+
+        num_pulses = len(matches)        
+
+        metadata = {"trigger_metadata": {}}
+        metadata['trigger_metadata']['trigger_command'] = sequence
+        metadata['trigger_metadata']['message_type'] = "send_pulse_sequence"
+        metadata['trigger_metadata']['description'] = f"Sending a pulse sequence of {num_pulses} pulses to pin {pin} with delays of {delays} ms and pulse widths of {widths} ms"
+        
+        if self.data_publisher is not None:
+            self.data_publisher.send_data({self.data_publisher.full_name:
+                                            {'metadata': metadata,
+                                            'message_type': 'trigger',
+                                            'serial_number': self.serial_number}})
         return response
 
     def updateCFile(self, CFilePath: str):
