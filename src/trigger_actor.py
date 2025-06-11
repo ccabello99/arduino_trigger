@@ -13,10 +13,11 @@ class ArduinoActor(Actor):
         self.pins = device_info['pins']
 
         # Register functions for remote calls
+        self.register_device_method(self.device.createPulse)
         self.register_device_method(self.device.sendPulse)
         self.register_device_method(self.device.sendPulseSequence)
         self.register_device_method(self.device.updateCFile)
         self.register_device_method(self.device.stop)
-
+        
         # Start listening for incoming messages
         self.listen()

@@ -8,9 +8,11 @@ import os
 import re
 import pyduinocli
 import time
+from typing import Optional
 from serial.tools import list_ports
 from qtpy import QtCore
 from pyleco.utils.data_publisher import DataPublisher
+from trigger_events import Pulse
 
 def find_arduino_ports():
     ports = list_ports.comports()
@@ -71,6 +73,11 @@ class ArduinoTrigger:
                                             'message_type': 'trigger',
                                             'serial_number': self.serial_number}})
         return response
+    
+    def createPulse(self, pin: int, width: int, delay: Optional[int] = None, timestamp: Optional[int] = None):
+        if delay is None and timestamp is None:
+            raise ValueError("Either 'delay' or 'timestamp' must be provided.")
+        return Pulse(pin, width, delay, timestamp)
     
     def sendRisingEdge(self, event: str):
         response = self.write_to_device(event)

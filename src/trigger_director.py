@@ -1,4 +1,5 @@
 from pyleco.directors.director import Director
+from typing import Optional
 
 class ArduinoDirector(Director):
     def __init__(self, actor: str, name:str, **kwargs):
@@ -13,6 +14,10 @@ class ArduinoDirector(Director):
     
     def stop(self):
         response_id = self.call_action_async(action="stop")
+        return response_id
+    
+    def createPulse(self, pin: int, width: int, delay: Optional[str] = None, timestamp: Optional[str] = None):
+        response_id = self.call_action_async(action="createPulse", pin=pin, width=width, delay=delay, timestamp=timestamp)
         return response_id
     
     def sendPulse(self, pulse: str):
