@@ -2,16 +2,16 @@
 
 const int channelPins[] = {2, 3, 4};
 const int numChannels = sizeof(channelPins) / sizeof(channelPins[0]);
-const int maxEvents = 20; // Maximum number of  events that can be buffered
+const int maxEvents = 20;
 
 struct Event {
-  unsigned long startTime;
+  unsigned long startTime;  // in micros
   int channel;
   bool state;
 };
 
 Event Events[maxEvents];
-int numEvents = 0; // Current number of scheduled  events
+int numEvents = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -21,146 +21,129 @@ void setup() {
   }
 }
 
-void sendConfirmation(bool success, String message = "") {
-  Serial.print(success ? "Success: " : "Error: ");
+void sendConfirmation(bool success, const char* message = "") {
+  Serial.print(success ? "OK: " : "ERR: ");
   Serial.println(message);
-  Serial.flush(); // Ensure message is sent
 }
 
 void resetEvents() {
-  numEvents = 0; // Clear the  event buffer
+  numEvents = 0;
 }
 
-void scheduleEvent(unsigned long time, int channel, bool state) {
+void scheduleEvent(unsigned long delay_us, int channel, bool state) {
   if (channel < 0 || channel >= numChannels) {
-    sendConfirmation(false, "Invalid channel index.");
+    sendConfirmation(false, "Bad channel.");
     return;
   }
 
   if (numEvents < maxEvents) {
-    Events[numEvents].startTime = millis() + time;
-    Events[numEvents].channel = channel;
-    Events[numEvents].state = state;
-    numEvents++;
+    Events[numEvents++] = {micros() + delay_us, channel, state};
   } else {
     sendConfirmation(false, "Event buffer full.");
   }
 }
 
 void processEvents() {
-  unsigned long currentTime = millis();
+  unsigned long now = micros();
   for (int i = 0; i < numEvents; ) {
-    if ((long)(currentTime - Events[i].startTime) >= 0) {
+    if ((long)(now - Events[i].startTime) >= 0) {
       digitalWrite(channelPins[Events[i].channel], Events[i].state);
-      // Shift remaining events forward
-      for (int j = i; j < numEvents - 1; j++) {
-        Events[j] = Events[j + 1];
-      }
-      numEvents--;
+      Events[i] = Events[--numEvents];  // Fast remove
     } else {
-      i++;
+      ++i;
     }
   }
 }
 
-void serialFlush() {
+void serialFlushInput() {
   while (Serial.available()) Serial.read();
 }
 
 void loop() {
-  // Wait for start delimiter
   while (Serial.available() > 0 && Serial.peek() != '<') {
-    Serial.read(); // discard until '<'
+    Serial.read();
   }
 
   if (Serial.available() > 0 && Serial.peek() == '<') {
-    Serial.read(); // consume the '<'
+    Serial.read();  // consume '<'
 
-    char commandBuffer[512];
-    memset(commandBuffer, 0, sizeof(commandBuffer));
+    char buffer[512];
+    int len = Serial.readBytesUntil('>', buffer, sizeof(buffer) - 1);
+    buffer[len] = '\0';
 
-    // Read until '>' or buffer full
-    int bytesRead = Serial.readBytesUntil('>', commandBuffer, sizeof(commandBuffer) - 1);
-
-    if (bytesRead == 0) {
-      sendConfirmation(false, "Empty command.");
+    if (len == 0) {
+      sendConfirmation(false, "Empty.");
       return;
     }
 
-    // ===== Check for STOP command before anything else =====
-    if (strncmp(commandBuffer, "STOP;", 5) == 0) {
-      // Validate CRC
-      int receivedCRC = atoi(commandBuffer + 5);
-      int calculatedCRC = 0;
-      for (int i = 0; i < 5; ++i) {
-        calculatedCRC ^= commandBuffer[i];
+    // Handle STOP command
+    if (strncmp(buffer, "STOP;", 5) == 0) {
+      int receivedCRC = atoi(buffer + 5);
+      int crc = 0;
+      for (int i = 0; i < 5; ++i) crc ^= buffer[i];
+
+      if (crc == receivedCRC) {
+        resetEvents();
+        for (int i = 0; i < numChannels; ++i) {
+          digitalWrite(channelPins[i], LOW);
+        }
+        sendConfirmation(true, "Stopped.");
+      } else {
+        sendConfirmation(false, "Bad CRC.");
       }
-
-    if (calculatedCRC == receivedCRC) {
-      resetEvents(); // Clear all scheduled events
-      for (int i = 0; i < numChannels; ++i) {
-        digitalWrite(channelPins[i], LOW); // Force all outputs LOW
-      }
-      sendConfirmation(true, "All events cleared and outputs set LOW (STOP).");
-    }
-
-      serialFlush();
-      return;
-    }
-    // ===== End of STOP command block =====
-
-    // Normal processing continues here
-    // Find last semicolon (which precedes CRC)
-    char* lastSemicolon = strrchr(commandBuffer, ';');
-    if (lastSemicolon == NULL) {
-      sendConfirmation(false, "CRC missing (no semicolon found).");
+      serialFlushInput();
       return;
     }
 
-    // Extract received CRC string
-    char* crcStr = lastSemicolon + 1;
-    if (strlen(crcStr) == 0) {
-      sendConfirmation(false, "CRC missing (empty after semicolon).");
+    // Regular event parsing
+    char* lastSemi = strrchr(buffer, ';');
+    if (!lastSemi || *(lastSemi + 1) == '\0') {
+      sendConfirmation(false, "No CRC.");
       return;
     }
 
-    int receivedCRC = atoi(crcStr);
+    int receivedCRC = atoi(lastSemi + 1);
+    size_t dataLen = lastSemi - buffer + 1;
+    char data[512];
+    strncpy(data, buffer, dataLen);
+    data[dataLen] = '\0';
 
-    // Prepare CRC data: everything up to and including last semicolon
-    size_t dataLen = lastSemicolon - commandBuffer + 1;
-    char crcData[512];
-    memset(crcData, 0, sizeof(crcData));
-    strncpy(crcData, commandBuffer, dataLen);
-
-    // Compute CRC (XOR)
-    int calculatedCRC = 0;
-    for (size_t i = 0; i < strlen(crcData); ++i) {
-      calculatedCRC ^= crcData[i];
+    int crc = 0;
+    for (size_t i = 0; i < dataLen; ++i) {
+      crc ^= data[i];
     }
 
-    if (calculatedCRC != receivedCRC) {
+    if (crc != receivedCRC) {
       sendConfirmation(false, "CRC mismatch.");
       return;
     }
 
     resetEvents();
 
-    char* token = strtok(crcData, ";");
+    char* token = strtok(data, ";");
     while (token != NULL) {
-      int time, channel, state;
-      if (sscanf(token, "(%d,%d,%d)", &channel, &time, &state) == 3) {
-        scheduleEvent((unsigned long)time, channel, state != 0);
+      char* p1 = strchr(token, '(');
+      char* c1 = strchr(p1, ',');
+      char* c2 = strchr(c1 + 1, ',');
+      char* p2 = strchr(c2 + 1, ')');
+
+      if (p1 && c1 && c2 && p2) {
+        *c1 = *c2 = *p2 = '\0';
+        int ch = atoi(p1 + 1);
+        int time = atoi(c1 + 1);
+        int state = atoi(c2 + 1);
+        scheduleEvent((unsigned long)time * 1000, ch, state != 0);
       } else {
-        Serial.print("Warning: Skipping invalid token: ");
+        Serial.print("Skip: ");
         Serial.println(token);
       }
+
       token = strtok(NULL, ";");
     }
 
-    sendConfirmation(true, "Events scheduled.");
-    serialFlush();
+    sendConfirmation(true, "Scheduled.");
+    serialFlushInput();
   }
 
-  // Process events, etc.
   processEvents();
 }

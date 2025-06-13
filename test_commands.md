@@ -13,7 +13,8 @@ from arduino_trigger.src.trigger import find_arduino_ports
 devices = find_arduino_ports()
 pins = {"Pin2": 0, "Pin3": 1, "Pin4": 2}
 device_info = {'port': devices['ports'][0], 'serial_number': devices['serial_numbers'][0], 'pins': pins}
-actor = ArduinoActor(name="testing", device_info=device_info, port=<coordinator_port>, host=<"coordinator_ip">)
+actor = ArduinoActor(name="testing", device_info=device_info, port=<coordinator_port>, host=<"coordinator_ip">,
+                    publisher_name="testing", proxy_port=<proxy_port>, proxy_address=<"proxy_ip">)
 ```
 
 Where you should provide the proper `coordinator_port` and `coordinator_ip`.
