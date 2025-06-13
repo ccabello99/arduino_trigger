@@ -63,7 +63,8 @@ class ArduinoTrigger:
         print(response)
         # Tell proxy server we have issued a command
         metadata = {"trigger_metadata": {}}
-        metadata['trigger_metadata']['device_reponse'] = response
+        metadata['trigger_metadata']['trigger_command'] = "STOP;"
+        metadata['trigger_metadata']['response'] = response
         metadata['trigger_metadata']['message_type'] = "stop"
         metadata['trigger_metadata']['description'] = f"Stopped all events, set all pins to zero, and clear all planned events"
         
@@ -90,6 +91,7 @@ class ArduinoTrigger:
 
         metadata = {"trigger_metadata": {}}
         metadata['trigger_metadata']['trigger_command'] = event
+        metadata['trigger_metadata']['response'] = response
         metadata['trigger_metadata']['message_type'] = "send_rising_edge"
         metadata['trigger_metadata']['description'] = f"Sending a rising edge to pin {pin} with delay of {delay} ms"
         
@@ -111,6 +113,7 @@ class ArduinoTrigger:
 
         metadata = {"trigger_metadata": {}}
         metadata['trigger_metadata']['trigger_command'] = event
+        metadata['trigger_metadata']['response'] = response
         metadata['trigger_metadata']['message_type'] = "send_falling_edge"
         metadata['trigger_metadata']['description'] = f"Sending a falling edge to pin {pin} with delay of {delay} ms"
         
@@ -134,6 +137,7 @@ class ArduinoTrigger:
 
         metadata = {"trigger_metadata": {}}
         metadata['trigger_metadata']['trigger_command'] = pulse
+        metadata['trigger_metadata']['response'] = response
         metadata['trigger_metadata']['message_type'] = "send_pulse"
         metadata['trigger_metadata']['description'] = f"Sending a pulse to pin {pin} with delay of {delay} ms and pulse width of {width} ms"
         
@@ -166,6 +170,7 @@ class ArduinoTrigger:
 
         metadata = {"trigger_metadata": {}}
         metadata['trigger_metadata']['trigger_command'] = sequence
+        metadata['trigger_metadata']['response'] = response
         metadata['trigger_metadata']['message_type'] = "send_pulse_sequence"
         metadata['trigger_metadata']['description'] = f"Sending a pulse sequence of {num_pulses} pulses to pin {pin} with delays of {delays} ms and pulse widths of {widths} ms"
         
