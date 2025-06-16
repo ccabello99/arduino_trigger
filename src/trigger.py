@@ -8,11 +8,11 @@ import os
 import re
 import pyduinocli
 import time
-from typing import Optional
+from typing import Optional, List
 from serial.tools import list_ports
 from qtpy import QtCore
 from pyleco.utils.data_publisher import DataPublisher
-from trigger_events import Pulse
+from trigger_events import Pulse, PulseSequence, RisingEdge, FallingEdge
 import platform
 import threading
 
@@ -89,10 +89,20 @@ class ArduinoTrigger:
         self.send_data_async(payload)
         return response
     
+    def createRisingEdge(self, pin: int, delay: Optional[int] = None, timestamp: Optional[int] = None):
+        if delay is None and timestamp is None:
+            raise ValueError("Either 'delay' or 'timestamp' must be provided.")
+        return RisingEdge(pin=pin, delay=delay, timestamp=timestamp).command
+    
+    def createFallingEdge(self, pin: int, delay: Optional[int] = None, timestamp: Optional[int] = None):
+        if delay is None and timestamp is None:
+            raise ValueError("Either 'delay' or 'timestamp' must be provided.")
+        return FallingEdge(pin=pin, delay=delay, timestamp=timestamp).command
+    
     def createPulse(self, pin: int, width: int, delay: Optional[int] = None, timestamp: Optional[int] = None):
         if delay is None and timestamp is None:
             raise ValueError("Either 'delay' or 'timestamp' must be provided.")
-        return Pulse(pin, width, delay, timestamp)
+        return Pulse(pin=pin, width=width, delay=delay, timestamp=timestamp).command
     
     def sendRisingEdge(self, event: str):
         response = self.write_to_device(event)

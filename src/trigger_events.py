@@ -95,7 +95,7 @@ class PulseSequence:
                     now_ms = int(time.time() * 1000)
                     ts_ms = int(pulse.timestamp * 1000)
                     pulse.delay = max(ts_ms - now_ms, 0)
-                    pulse.pulse = f"({pulse.pin},{pulse.delay},1);({pulse.pin},{pulse.delay + pulse.width},0);"
+                    pulse.command = f"({pulse.pin},{pulse.delay},1);({pulse.pin},{pulse.delay + pulse.width},0);"
 
         # Now create the command sequence as a string
         self.command = ""

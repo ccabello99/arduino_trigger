@@ -15,10 +15,30 @@ class ArduinoDirector(Director):
     def stop(self):
         response_id = self.call_action_async(action="stop")
         return response_id
-    
+
+    def createRisingEdge(self, pin: int, delay: Optional[str] = None, timestamp: Optional[str] = None):
+        response_id = self.call_action_async(action="createRisingEdge", pin=pin, delay=delay, timestamp=timestamp)
+        return response_id
+
+    def createFallingEdge(self, pin: int, delay: Optional[str] = None, timestamp: Optional[str] = None):
+        response_id = self.call_action_async(action="createFallingEdge", pin=pin, delay=delay, timestamp=timestamp)
+        return response_id
+
     def createPulse(self, pin: int, width: int, delay: Optional[str] = None, timestamp: Optional[str] = None):
         response_id = self.call_action_async(action="createPulse", pin=pin, width=width, delay=delay, timestamp=timestamp)
         return response_id
+    
+    def createPulseSequence(self, pin: int, width: int, delay: Optional[str] = None, timestamp: Optional[str] = None):
+        response_id = self.call_action_async(action="createPulseSequence", pin=pin, width=width, delay=delay, timestamp=timestamp)
+        return response_id
+    
+    def sendRisingEdge(self, event: str):
+        response_id = self.call_action_async(action="sendRisingEdge", event=event)
+        return response_id
+
+    def sendFallingEdge(self, event: str):
+        response_id = self.call_action_async(action="sendFallingEdge", event=event)
+        return response_id    
     
     def sendPulse(self, pulse: str):
         response_id = self.call_action_async(action="sendPulse", pulse=pulse)
