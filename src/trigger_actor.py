@@ -1,10 +1,7 @@
 from pyleco.actors.actor import Actor
 from trigger import ArduinoTrigger, find_arduino_ports
 from pyleco.utils.events import Event, SimpleEvent
-from pyleco.utils.communicator import Communicator
-from pyleco.core.message import Message, MessageTypes
-from pyleco.json_utils.json_objects import Request
-import time
+from threading import Thread
 
 # Parameters
 ports = find_arduino_ports()
@@ -27,9 +24,6 @@ class ArduinoActor(Actor):
         self.register_device_method(self.device.sendPulseSequence)
         self.register_device_method(self.device.updateCFile)
         self.register_device_method(self.device.stop)
-        
-        # Start listening for incoming messages
-        self.listen()
 
     def listen(self, stop_event: Event = SimpleEvent(), waiting_time: int = 100, heartbeat_interval: float = 1.0, **kwargs) -> None:
         """Listen for zmq communication until `stop_event` is set or until KeyboardInterrupt.
@@ -50,3 +44,18 @@ class ArduinoActor(Actor):
             self.device.arduino.close()
             print(f"Connection to arduino on port {self.device_port} has been closed.")
             self._listen_close(waiting_time=waiting_time)
+
+    def stop_listening(self):
+        # Stop the listening thread
+        self.stop_event.set()
+        self.listening_thread.join(timeout=2.0)
+
+    def start_listening(self):
+        # Start listening for incoming messages
+        self.stop_event = Event()
+        self.listening_thread = Thread(
+            target=self.listen,
+            kwargs={'stop_event': self.stop_event},
+            daemon=True
+        )
+        self.listening_thread.start()            

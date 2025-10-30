@@ -27,8 +27,9 @@ def find_arduino_ports():
         if port.manufacturer == None:
             continue
         if platform.system() == "Windows":
-            arduino_ports["ports"].append(port.device)
-            arduino_ports["serial_numbers"].append(port.serial_number)
+            if port.serial_number == '85133323136351201241':
+            	arduino_ports["ports"].append(port.device)
+            	arduino_ports["serial_numbers"].append(port.serial_number)
         else:
             if "Arduino" in port.manufacturer:
                 arduino_ports["ports"].append(port.device)
