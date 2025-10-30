@@ -1,7 +1,7 @@
 from pyleco.actors.actor import Actor
 from trigger import ArduinoTrigger, find_arduino_ports
-from pyleco.utils.events import Event, SimpleEvent
-from threading import Thread
+import pyleco.utils.events as plev
+from threading import Thread, Event
 
 # Parameters
 ports = find_arduino_ports()
@@ -25,7 +25,7 @@ class ArduinoActor(Actor):
         self.register_device_method(self.device.updateCFile)
         self.register_device_method(self.device.stop)
 
-    def listen(self, stop_event: Event = SimpleEvent(), waiting_time: int = 100, heartbeat_interval: float = 1.0, **kwargs) -> None:
+    def listen(self, stop_event: plev.Event = plev.SimpleEvent(), waiting_time: int = 100, heartbeat_interval: float = 1.0, **kwargs) -> None:
         """Listen for zmq communication until `stop_event` is set or until KeyboardInterrupt.
         
         Periodically sends a heartbeat every `heartbeat_interval` seconds.

@@ -1,15 +1,27 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QPushButton, QMessageBox, QDialog, QFormLayout,
-    QLineEdit, QDialogButtonBox, QSpinBox, QApplication, QLabel
+    QLineEdit, QDialogButtonBox, QSpinBox, QApplication, QLabel, QTextEdit
 )
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal, Qt, QObject
 import logging
 import sys
-
 from trigger import find_arduino_ports
 from trigger_actor import ArduinoActor
 
+
 logger = logging.getLogger(__name__)
+
+
+class EmittingStream(QObject):
+    """Redirects console output to a Qt signal."""
+    text_written = pyqtSignal(str)
+
+    def write(self, text):
+        if text.strip():  # ignore empty writes
+            self.text_written.emit(text)
+
+    def flush(self):
+        pass
 
 
 class ActorInitDialog(QDialog):
@@ -65,36 +77,54 @@ class ActorWidget(QWidget):
 
         layout = QVBoxLayout(self)
 
-        self.title = QLabel()
+        self.title = QLabel("Actor name: ")
         self.title.setAlignment(Qt.AlignCenter)
-        self.title.setText("Actor name: ")
         layout.addWidget(self.title, alignment=Qt.AlignCenter)
 
         # LED indicator
         self.led = QLabel()
         self.led.setFixedSize(20, 20)
         self.led.setAlignment(Qt.AlignCenter)
-        self.update_led()  # start as red
+        self.update_led()
         layout.addWidget(self.led, alignment=Qt.AlignCenter)
 
         # Pins display
         self.pins_label = QLabel()
         self.pins_label.setAlignment(Qt.AlignCenter)
-        self.pins_label.setFixedSize(80, 80)
+        self.pins_label.setFixedSize(120, 80)
         self.pins_label.setWordWrap(True)
-        self.update_pins_display()  # show placeholder at start
-        layout.addWidget(self.pins_label, alignment=Qt.AlignCenter)        
+        self.update_pins_display()
+        layout.addWidget(self.pins_label, alignment=Qt.AlignCenter)
 
         # Buttons
         self.init_button = QPushButton("Connect Actor")
         self.init_button.clicked.connect(self.open_actor_init_dialog)
-
         self.uninit_button = QPushButton("Disconnect Actor")
         self.uninit_button.clicked.connect(self.close_actor)
 
         layout.addWidget(self.init_button)
         layout.addWidget(self.uninit_button)
+
+        # Console output text box
+        self.console_output = QTextEdit()
+        self.console_output.setReadOnly(True)
+        self.console_output.setFixedHeight(120)
+        self.console_output.setStyleSheet(
+            "background-color: #1e1e1e; color: #00ff88; font-family: Consolas, monospace; font-size: 10pt;"
+        )
+        layout.addWidget(QLabel("Console Output:"))
+        layout.addWidget(self.console_output)
+
         self.setLayout(layout)
+
+        # Redirect stdout and stderr to the console box
+        sys.stdout = EmittingStream(text_written=self.append_console_text)
+        sys.stderr = EmittingStream(text_written=self.append_console_text)
+
+    def append_console_text(self, text):
+        """Append text to console output box."""
+        self.console_output.append(text)
+        self.console_output.ensureCursorVisible()
 
     def update_led(self):
         """Update LED color based on self.connected"""
@@ -109,7 +139,7 @@ class ActorWidget(QWidget):
             text = ", ".join(f"{k}: {v}" for k, v in self.actor.pins.items())
             self.pins_label.setText(f"Pins → {text}")
         else:
-            self.pins_label.setText("Pins → (no actor connected)")        
+            self.pins_label.setText("Pins → (no actor connected)")
 
     def open_actor_init_dialog(self):
         dialog = ActorInitDialog(self)
@@ -118,7 +148,11 @@ class ActorWidget(QWidget):
             try:
                 devices = find_arduino_ports()
                 pins = {"Shutter": 0, "Detectors": 1, "SDI": 2, "DSCAN": 3, "Aux.": 4}
-                device_info = {'port': devices['ports'][0], 'serial_number': devices['serial_numbers'][0], 'pins': pins}
+                device_info = {
+                    "port": devices["ports"][0],
+                    "serial_number": devices["serial_numbers"][0],
+                    "pins": pins
+                }
                 self.actor = ArduinoActor(device_info=device_info, **values)
                 self.actor.start_listening()
                 self.connected = True
@@ -126,6 +160,7 @@ class ActorWidget(QWidget):
                 self.update_pins_display()
                 msg = f"ArduinoActor initialized and listening"
                 self.title.setText(f"Actor name: {self.actor.name}")
+                print(msg)
                 logger.info(msg)
                 QMessageBox.information(self, "Success", msg)
             except Exception as e:
@@ -133,6 +168,7 @@ class ActorWidget(QWidget):
                 self.update_led()
                 self.update_pins_display()
                 msg = f"Failed to initialize ArduinoActor: {e}"
+                print(msg)
                 logger.error(msg)
                 QMessageBox.critical(self, "Error", msg)
 
@@ -145,11 +181,13 @@ class ActorWidget(QWidget):
             self.update_led()
             self.update_pins_display()
             msg = f"ArduinoActor uninitialized and stopped listening"
-            self.title.setText(f"Actor name: ")
+            self.title.setText("Actor name: ")
+            print(msg)
             logger.info(msg)
             QMessageBox.information(self, "Success", msg)
         except Exception as e:
             msg = f"Failed to uninitialize ArduinoActor: {e}"
+            print(msg)
             logger.error(msg)
             QMessageBox.critical(self, "Error", msg)
 
@@ -159,7 +197,7 @@ def main():
 
     widget = ActorWidget()
     widget.setWindowTitle("ArduinoActor Connector")
-    widget.resize(300, 150)
+    widget.resize(400, 400)
     widget.show()
 
     sys.exit(app.exec_())
