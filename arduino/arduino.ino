@@ -1,9 +1,9 @@
 #include <Arduino.h>
 
 // ========== Config ==========
-#define DEBUG 0  // Set to 1 for verbose serial prints
+#define DEBUG 1  // Set to 1 for verbose serial prints
 
-const int channelPins[] = {2, 3, 4};
+const int channelPins[] = {1, 2, 3, 4, 5, 6};
 const int numChannels = sizeof(channelPins) / sizeof(channelPins[0]);
 const int maxEvents = 20;
 
@@ -64,9 +64,15 @@ void setup() {
   pinMode(channelPins[0], OUTPUT);
   pinMode(channelPins[1], OUTPUT);
   pinMode(channelPins[2], OUTPUT);
+  pinMode(channelPins[3], OUTPUT);
+  pinMode(channelPins[4], OUTPUT);
+  pinMode(channelPins[5], OUTPUT);  
   digitalWrite(channelPins[0], LOW);
   digitalWrite(channelPins[1], LOW);
   digitalWrite(channelPins[2], LOW);
+  digitalWrite(channelPins[3], LOW);
+  digitalWrite(channelPins[4], LOW);
+  digitalWrite(channelPins[5], LOW);  
 }
 
 // ========== Main Loop ==========

@@ -91,7 +91,7 @@ class ActorWidget(QWidget):
         # Pins display
         self.pins_label = QLabel()
         self.pins_label.setAlignment(Qt.AlignCenter)
-        self.pins_label.setFixedSize(120, 80)
+        self.pins_label.setFixedSize(160, 120)
         self.pins_label.setWordWrap(True)
         self.update_pins_display()
         layout.addWidget(self.pins_label, alignment=Qt.AlignCenter)
@@ -136,10 +136,10 @@ class ActorWidget(QWidget):
     def update_pins_display(self):
         """Update label to show actor pins dictionary"""
         if self.actor and hasattr(self.actor, "pins"):
-            text = ", ".join(f"{k}: {v}" for k, v in self.actor.pins.items())
-            self.pins_label.setText(f"Pins → {text}")
+            text = ", ".join(f"{k}: {v}" for k, v in self.actor.pins_to_letter.items())
+            self.pins_label.setText(f"{text}")
         else:
-            self.pins_label.setText("Pins → (no actor connected)")
+            self.pins_label.setText("(no actor connected)")
 
     def open_actor_init_dialog(self):
         dialog = ActorInitDialog(self)
@@ -147,11 +147,13 @@ class ActorWidget(QWidget):
             values = dialog.get_values()
             try:
                 devices = find_arduino_ports()
-                pins = {"Shutter": 0, "Detectors": 1, "SDI": 2, "DSCAN": 3, "Aux.": 4}
+                pins = {"Pin1": 1, "Pin2": 2, "Pin3": 3, "Pin4": 4, "Pin5": 5, "Pin6": 6}
+                pins_to_letter = {"Pin1": "E", "Pin2": "F", "Pin3": "A", "Pin4": "B", "Pin5": "C", "Pin6": "D"}
                 device_info = {
                     "port": devices["ports"][0],
                     "serial_number": devices["serial_numbers"][0],
-                    "pins": pins
+                    "pins": pins,
+                    "pins_to_letter": pins_to_letter
                 }
                 self.actor = ArduinoActor(device_info=device_info, **values)
                 self.actor.start_listening()

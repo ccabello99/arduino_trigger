@@ -5,7 +5,8 @@ from threading import Thread, Event
 
 # Parameters
 ports = find_arduino_ports()
-pins = {"Pin2": 0, "Pin3": 1, "Pin4": 2}
+pins = {"Pin1": 1, "Pin2": 2, "Pin3": 3, "Pin4": 4, "Pin5": 5, "Pin6": 6}
+pins_to_letter = {"Pin1": "E", "Pin2": "F", "Pin3": "A", "Pin4": "B", "Pin5": "C", "Pin6": "D"}
 
 class ArduinoActor(Actor):
     def __init__(self, name: str, device_info: dict, publisher_name: str, proxy_address: str, proxy_port: int, **kwargs):
@@ -13,6 +14,7 @@ class ArduinoActor(Actor):
         self.connect(device_info=device_info, publisher_name=publisher_name, proxy_address=proxy_address, proxy_port=proxy_port)
         self.device_port = device_info['port']
         self.pins = device_info['pins']
+        self.pins_to_letter = device_info['pins_to_letter']
 
         # Register functions for remote calls
         self.register_device_method(self.device.createRisingEdge)

@@ -253,10 +253,21 @@ class ArduinoTrigger:
 if __name__ == "__main__":
     # Create an instance on file execution
     arduino_ports = find_arduino_ports()
+    print(arduino_ports)
     if arduino_ports:
-        device_port = arduino_ports[0] # Use the first found Arduino port
-        pins = [2, 3, 4]
-        trigger = ArduinoTrigger(device_port, pins)
+        devices = find_arduino_ports()
+        device_port = devices["ports"][0]
+        pins = {"Pin1": 1, "Pin2": 2, "Pin3": 3, "Pin4": 4, "Pin5": 5, "Pin6": 6}
+        pins_to_letter = {"Pin1": "E", "Pin2": "F", "Pin3": "A", "Pin4": "B", "Pin5": "C", "Pin6": "D"}
+        device_info = {
+            "port": devices["ports"][0],
+            "serial_number": devices["serial_numbers"][0],
+            "pins": pins,
+            "pins_to_letter": pins_to_letter
+        }
+        trigger = ArduinoTrigger(device_info, "test", "192.168.178.15", 11100)
         print(f"Arduino trigger initialized on port {device_port} with pins {pins}")
+        trigger.updateCFile("/home/ccabello/Documents/PCO/M2-Internship/arduino_trigger/arduino/arduino.ino")
+        print(f"Arduino trigger on port {device_port} closed")
     else:
         print("No Arduino devices found.")
