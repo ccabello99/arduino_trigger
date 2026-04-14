@@ -2,7 +2,7 @@ import time
 from typing import Optional, List
 
 class RisingEdge:
-    def __init__(self, pin, width, 
+    def __init__(self, pin, 
                 delay: Optional[int] = None, 
                 timestamp: Optional[int] = None):
         self.pin = pin
@@ -26,7 +26,7 @@ class RisingEdge:
         self.command = f"({self.pin},{self.delay},1);"
 
 class FallingEdge:
-    def __init__(self, pin, width, 
+    def __init__(self, pin, 
                  delay: Optional[int] = None, 
                  timestamp: Optional[int] = None):
         self.pin = pin
