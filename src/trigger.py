@@ -265,7 +265,7 @@ if __name__ == "__main__":
     if arduino_ports:
         devices = find_arduino_ports()
         device_port = devices["ports"][0]
-        pins = {"Pin1": 1, "Pin2": 2, "Pin3": 3, "Pin4": 4, "Pin5": 5, "Pin6": 6}
+        pins = {"Pin1": 0, "Pin2": 1, "Pin3": 2, "Pin4": 3, "Pin5": 4, "Pin6": 5}
         pins_to_letter = {"Pin1": "E", "Pin2": "F", "Pin3": "A", "Pin4": "B", "Pin5": "C", "Pin6": "D"}
         device_info = {
             "port": devices["ports"][0],
