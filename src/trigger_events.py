@@ -75,6 +75,52 @@ class Pulse:
         # Now create the pulse command as string
         self.command = f"({self.pin},{self.delay},1);({self.pin},{self.delay+self.width},0);"
 
+class SyncPulseAndEdge:
+    """
+    Sends a pulse on one pin and a rising or falling edge on another pin
+    as close to simultaneously as possible, by using the same delay for both.
+    
+    Args:
+        pulse_pin (int):        Pin to send the pulse on.
+        pulse_width (int):      Width of the pulse in ms.
+        edge_pin (int):         Pin to send the rising/falling edge on.
+        edge_type (str):        'rising' or 'falling'.
+        delay (int, optional):  Delay in ms before both events fire.
+        timestamp (int, optional): Absolute timestamp in ns (like time.time_ns()).
+    """
+    def __init__(self, pulse_pin: int, pulse_width: int,
+                 edge_pin: int, edge_type: str,
+                 delay: Optional[int] = None,
+                 timestamp: Optional[int] = None):
+
+        if edge_type not in ('rising', 'falling'):
+            raise ValueError("edge_type must be 'rising' or 'falling'.")
+
+        self.pulse_pin = pulse_pin
+        self.pulse_width = pulse_width
+        self.edge_pin = edge_pin
+        self.edge_type = edge_type
+        self.delay = delay
+        self.timestamp = timestamp
+
+        if self.timestamp is not None:
+            now_ms = int(time.time_ns() / 1e6)
+            ts_ms = int(self.timestamp / 1e6)
+            ts_delay = max(ts_ms - now_ms, 0)
+            if self.delay is not None:
+                self.delay += ts_delay
+            else:
+                self.delay = ts_delay
+        elif self.delay is None:
+            raise ValueError("Either 'delay' or 'timestamp' must be provided.")
+
+        # Both events use the exact same resolved delay so they fire together
+        edge_state = 1 if edge_type == 'rising' else 0
+        pulse_cmd = f"({self.pulse_pin},{self.delay},1);({self.pulse_pin},{self.delay + self.pulse_width},0);"
+        edge_cmd  = f"({self.edge_pin},{self.delay},{edge_state});"
+
+        self.command = pulse_cmd + edge_cmd        
+
 class PulseSequence:
     def __init__(self, pulses: List[Pulse]):
         if not pulses:

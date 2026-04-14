@@ -44,6 +44,10 @@ class ArduinoDirector(Director):
         response_id = self.call_action_async(action="sendPulse", pulse=pulse)
         return response_id # self.read_rpc_response(response_id) later to get the response
     
+    def sendSyncPulseAndEdge(self, event: str):
+        response_id = self.call_action_async(action="sendSyncPulseAndEdge", event=event)
+        return response_id
+    
     def sendPulseSequence(self, sequence: str):
         response_id = self.call_action_async(action="sendPulseSequence", sequence=sequence)
         return response_id

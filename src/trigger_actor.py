@@ -23,6 +23,7 @@ class ArduinoActor(Actor):
         self.register_device_method(self.device.sendRisingEdge)
         self.register_device_method(self.device.sendFallingEdge)
         self.register_device_method(self.device.sendPulse)
+        self.register_device_method(self.device.sendSyncPulseAndEdge)
         self.register_device_method(self.device.sendPulseSequence)
         self.register_device_method(self.device.updateCFile)
         self.register_device_method(self.device.stop)

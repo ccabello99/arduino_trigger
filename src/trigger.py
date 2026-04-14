@@ -151,6 +151,14 @@ class ArduinoTrigger:
                                              f"Sending a pulse to pin {pin} with delay of {delay} ms and pulse width of {width} ms")
         self.send_data_async(payload)
         return response
+    
+    def sendSyncPulseAndEdge(self, event: str):
+        response = self.write_to_device(event)
+        print(response)
+        payload = self.make_metadata_payload(event, response, "send_sync_pulse_and_edge",
+                                            "Sending synchronized pulse and edge event")
+        self.send_data_async(payload)
+        return response
 
     def sendPulseSequence(self, sequence: str):
         response = self.write_to_device(sequence)
